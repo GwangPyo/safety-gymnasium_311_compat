@@ -50,6 +50,8 @@ class Apples(Geom):  # pylint: disable=too-many-instance-attributes
     is_constrained: bool = False
     is_meshed: bool = False
 
+
+
     def get_config(self, xy_pos, rot):
         """To facilitate get specific config for this object."""
         geom = {

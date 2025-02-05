@@ -189,6 +189,8 @@ class Underlying(abc.ABC):  # pylint: disable=too-many-instance-attributes
     - :attr:`data`: mjData.
     - :attr:`_obstacles` (list): All types of object in current environment.
     """
+    screen_width: int = 640  # for the render, screen width
+    screen_height: int = 640  # for the render, screen height
 
     def __init__(self, config: dict | None = None) -> None:
         """Initialize the engine.
@@ -577,7 +579,8 @@ class Underlying(abc.ABC):  # pylint: disable=too-many-instance-attributes
                     self.agent.keyboard_control_callback,
                 )
             elif mode in {'rgb_array', 'depth_array'}:
-                self.viewer = OffScreenViewer(self.model, self.data)
+                self.viewer = OffScreenViewer(self.model, self.data, width=self.screen_width,
+                                              height=self.screen_height)
             else:
                 raise AttributeError(f'Unexpected mode: {mode}')
 

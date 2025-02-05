@@ -26,10 +26,137 @@ from gymnasium.envs.registration import spec  # noqa: F401 # pylint: disable=unu
 from gymnasium.envs.registration import EnvSpec, _check_metadata, _find_spec, load_env_creator
 from gymnasium.envs.registration import register as gymnasium_register
 from gymnasium.wrappers import HumanRendering, OrderEnforcing, RenderCollection
-from gymnasium.wrappers.compatibility import EnvCompatibility
 
 from safety_gymnasium.wrappers import SafeAutoResetWrapper, SafePassiveEnvChecker, SafeTimeLimit
+"""A compatibility wrapper converting an old-style environment into a valid environment."""
+from typing import Any, Dict, Optional, Protocol, Tuple, runtime_checkable
 
+import gymnasium as gym
+from gymnasium import logger
+from gymnasium.core import ObsType
+from gymnasium.utils.step_api_compatibility import (
+    convert_to_terminated_truncated_step_api,
+)
+
+
+@runtime_checkable
+class LegacyEnv(Protocol):
+    """A protocol for environments using the old step API."""
+
+    observation_space: gym.Space
+    action_space: gym.Space
+
+    def reset(self) -> Any:
+        """Reset the environment and return the initial observation."""
+        ...
+
+    def step(self, action: Any) -> Tuple[Any, float, bool, Dict]:
+        """Run one timestep of the environment's dynamics."""
+        ...
+
+    def render(self, mode: Optional[str] = "human") -> Any:
+        """Render the environment."""
+        ...
+
+    def close(self):
+        """Close the environment."""
+        ...
+
+    def seed(self, seed: Optional[int] = None):
+        """Set the seed for this env's random number generator(s)."""
+        ...
+
+
+class EnvCompatibility(gym.Env):
+    r"""A wrapper which can transform an environment from the old API to the new API.
+
+    Old step API refers to step() method returning (observation, reward, done, info), and reset() only retuning the observation.
+    New step API refers to step() method returning (observation, reward, terminated, truncated, info) and reset() returning (observation, info).
+    (Refer to docs for details on the API change)
+
+    Known limitations:
+    - Environments that use `self.np_random` might not work as expected.
+    """
+
+    def __init__(self, old_env: LegacyEnv, render_mode: Optional[str] = None):
+        """A wrapper which converts old-style envs to valid modern envs.
+
+        Some information may be lost in the conversion, so we recommend updating your environment.
+
+        Args:
+            old_env (LegacyEnv): the env to wrap, implemented with the old API
+            render_mode (str): the render mode to use when rendering the environment, passed automatically to env.render
+        """
+        logger.deprecation(
+            "The `gymnasium.make(..., apply_api_compatibility=...)` parameter is deprecated and will be removed in v1.0. "
+            "Instead use `gymnasium.make('GymV21Environment-v0', env_name=...)` or `from shimmy import GymV21CompatibilityV0`"
+        )
+
+        self.env = old_env
+        self.metadata = getattr(old_env, "metadata", {"render_modes": []})
+        self.render_mode = render_mode
+        self.reward_range = getattr(old_env, "reward_range", None)
+        self.spec = getattr(old_env, "spec", None)
+
+        self.observation_space = old_env.observation_space
+        self.action_space = old_env.action_space
+
+    def reset(
+        self, seed: Optional[int] = None, options: Optional[dict] = None
+    ) -> Tuple[ObsType, dict]:
+        """Resets the environment.
+
+        Args:
+            seed: the seed to reset the environment with
+            options: the options to reset the environment with
+
+        Returns:
+            (observation, info)
+        """
+        if seed is not None:
+            self.env.seed(seed)
+        # Options are ignored
+
+        if self.render_mode == "human":
+            self.render()
+
+        return self.env.reset(), {}
+
+    def step(self, action: Any) -> Tuple[Any, float, bool, bool, Dict]:
+        """Steps through the environment.
+
+        Args:
+            action: action to step through the environment with
+
+        Returns:
+            (observation, reward, terminated, truncated, info)
+        """
+        obs, reward, done, info = self.env.step(action)
+
+        if self.render_mode == "human":
+            self.render()
+
+        return convert_to_terminated_truncated_step_api((obs, reward, done, info))
+
+    def render(self) -> Any:
+        """Renders the environment.
+
+        Returns:
+            The rendering of the environment, depending on the render mode
+        """
+        return self.env.render(mode=self.render_mode)
+
+    def close(self):
+        """Closes the environment."""
+        self.env.close()
+
+    def __str__(self):
+        """Returns the wrapper name and the unwrapped environment string."""
+        return f"<{type(self).__name__}{self.env}>"
+
+    def __repr__(self):
+        """Returns the string representation of the wrapper."""
+        return str(self)
 
 safe_registry = set()
 
@@ -153,9 +280,7 @@ def make(
                 f'that is not in the possible render_modes ({render_modes}).',
             )
 
-    if apply_api_compatibility or (
-        apply_api_compatibility is None and env_spec.apply_api_compatibility
-    ):
+    if apply_api_compatibility:
         # If we use the compatibility layer, we treat the render mode explicitly and don't pass it to the env creator
         render_mode = env_spec_kwargs.pop('render_mode', None)
     else:
@@ -183,9 +308,7 @@ def make(
         nondeterministic=env_spec.nondeterministic,
         max_episode_steps=None,
         order_enforce=False,
-        autoreset=False,
         disable_env_checker=True,
-        apply_api_compatibility=False,
         kwargs=env_spec_kwargs,
         additional_wrappers=(),
         vector_entry_point=env_spec.vector_entry_point,
@@ -205,9 +328,7 @@ def make(
             )
 
     # Add step API wrapper
-    if apply_api_compatibility is True or (
-        apply_api_compatibility is None and env_spec.apply_api_compatibility is True
-    ):
+    if apply_api_compatibility is True:
         env = EnvCompatibility(env, render_mode)
 
     # Run the environment checker as the lowest level wrapper
@@ -227,7 +348,7 @@ def make(
         env = SafeTimeLimit(env, env_spec.max_episode_steps)
 
     # Add the auto-reset wrapper
-    if autoreset is True or (autoreset is None and env_spec.autoreset is True):
+    if autoreset is True:
         env = SafeAutoResetWrapper(env)
 
     for wrapper_spec in env_spec.additional_wrappers[num_prior_wrappers:]:

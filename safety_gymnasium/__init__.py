@@ -23,7 +23,9 @@ from safety_gymnasium import vector, wrappers
 from safety_gymnasium.tasks.safe_multi_agent.tasks.velocity.safe_mujoco_multi import make_ma
 from safety_gymnasium.utils.registration import make, register
 from safety_gymnasium.version import __version__
+import os
 
+os.environ['MUJOCO_GL'] = 'egl'
 
 __all__ = [
     'register',

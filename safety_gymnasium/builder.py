@@ -315,6 +315,7 @@ class Builder(gymnasium.Env, gymnasium.utils.EzPickle):
         assert (
             not self.task.observe_vision
         ), 'When you use vision envs, you should not call this function explicitly.'
+
         return self.task.render(cost=self.cost, **asdict(self.render_parameters))
 
     @property
