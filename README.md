@@ -6,7 +6,7 @@
 
 <div align="center">
 
-  <a>![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-brightgreen.svg)</a>
+  <a>![Python 3.11+](https://img.shields.io/badge/Python-3.8%2B-brightgreen.svg)</a>
   <a href="https://pypi.org/project/safety-gymnasium">![PyPI](https://img.shields.io/pypi/v/safety-gymnasium?logo=pypi)</a>
   <a href="https://safety-gymnasium.readthedocs.io">![Documentation Status](https://img.shields.io/readthedocs/safety-gymnasium?logo=readthedocs)</a>
   <a href="https://pepy.tech/project/safety-gymnasium">![Downloads](https://static.pepy.tech/personalized-badge/safety-gymnasium?period=total&left_color=grey&right_color=blue&left_text=downloads)</a>
@@ -42,12 +42,15 @@ If you find Safety-Gymnasium useful, please cite it in your publications.
 ```
 
 --------------------------------------------------------------------------------
-
+# This is minor revision of safety gymansium for gymnasium 1.0 and python 3.11 compatibility
 # Note for v1.1.0 and v1.2.0❗️❗️❗️
 
 We have updated the environments for both the Safe Vision series and the Safe Isaac Gym series. However, due to **package size constraints**, we have not yet uploaded versions **v1.1.0** and **v1.2.0** to PyPI. As a result, users are required to manually download and install. We currently recommend using GitHub's **Download zip** feature to obtain our package and access the latest environments. In the future, we plan to deploy resources separately to a cloud service to accommodate PyPI. Stay tuned for further updates.
 
-**Python 3.11 is not supported for now, due to the incompatibility of pygame.**
+~~**Python 3.11 is not supported for now, due to the incompatibility of pygame.**~~
+
+Python 3.11 and gymansium 1.0 supported
+
 ```bash
 conda create -n example python=3.8
 conda activate example
