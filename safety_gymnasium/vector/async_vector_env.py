@@ -20,7 +20,7 @@ import multiprocessing as mp
 import sys
 from copy import deepcopy
 from multiprocessing import connection
-from typing import Sequence
+from typing import Sequence, Callable
 
 import gymnasium
 import numpy as np
@@ -29,7 +29,7 @@ from gymnasium.vector.async_vector_env import AsyncState, AsyncVectorEnv
 from gymnasium.vector.utils import concatenate, write_to_shared_memory
 
 from safety_gymnasium.vector.utils.tile_images import tile_images
-
+from gymnasium.vector.vector_env import AutoresetMode
 
 __all__ = ['AsyncVectorEnv']
 
@@ -40,14 +40,14 @@ class SafetyAsyncVectorEnv(AsyncVectorEnv):
     # pylint: disable-next=too-many-arguments
     def __init__(
         self,
-        env_fns: Sequence[callable],
-        observation_space: gymnasium.Space | None = None,
-        action_space: gymnasium.Space | None = None,
+        env_fns: Sequence[Callable],
         shared_memory: bool = True,
         copy: bool = True,
         context: str | None = None,
         daemon: bool = True,
-        worker: callable | None = None,
+        worker: Callable | None = None,
+        observation_mode: str | gymnasium.Space = "same",
+        autoreset_mode: str | AutoresetMode = AutoresetMode.NEXT_STEP,
     ) -> None:
         """Initialize the async vector environment.
 
@@ -64,14 +64,14 @@ class SafetyAsyncVectorEnv(AsyncVectorEnv):
         target = _worker_shared_memory if shared_memory else _worker
         target = worker or target
         super().__init__(
-            env_fns,
-            observation_space,
-            action_space,
-            shared_memory,
-            copy,
-            context,
-            daemon,
+            env_fns=env_fns,
+            shared_memory=shared_memory,
+            copy=copy,
+            context=context,
+            daemon=daemon,
             worker=target,
+            observation_mode=observation_mode,
+            autoreset_mode=autoreset_mode
         )
 
     def get_images(self):
@@ -154,7 +154,7 @@ class SafetyAsyncVectorEnv(AsyncVectorEnv):
 # pylint: disable-next=too-many-arguments,too-many-locals,too-many-branches
 def _worker(
     index: int,
-    env_fn: callable,
+    env_fn: Callable,
     pipe: connection.Connection,
     parent_pipe: connection.Connection,
     shared_memory: bool,
@@ -237,7 +237,7 @@ def _worker(
 # pylint: disable-next=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
 def _worker_shared_memory(
     index: int,
-    env_fn: callable,
+    env_fn: Callable,
     pipe: connection.Connection,
     parent_pipe: connection.Connection,
     shared_memory: bool,
