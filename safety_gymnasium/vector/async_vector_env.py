@@ -29,7 +29,6 @@ from gymnasium.vector.async_vector_env import AsyncState, AsyncVectorEnv
 from gymnasium.vector.utils import concatenate, write_to_shared_memory
 
 from safety_gymnasium.vector.utils.tile_images import tile_images
-from gymnasium.vector.vector_env import AutoresetMode
 
 __all__ = ['AsyncVectorEnv']
 
@@ -47,7 +46,6 @@ class SafetyAsyncVectorEnv(AsyncVectorEnv):
         daemon: bool = True,
         worker: Callable | None = None,
         observation_mode: str | gymnasium.Space = "same",
-        autoreset_mode: str | AutoresetMode = AutoresetMode.NEXT_STEP,
     ) -> None:
         """Initialize the async vector environment.
 
@@ -71,7 +69,6 @@ class SafetyAsyncVectorEnv(AsyncVectorEnv):
             daemon=daemon,
             worker=target,
             observation_mode=observation_mode,
-            autoreset_mode=autoreset_mode
         )
 
     def get_images(self):

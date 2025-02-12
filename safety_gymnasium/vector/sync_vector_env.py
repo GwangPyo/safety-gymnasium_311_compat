@@ -25,7 +25,6 @@ from gymnasium.spaces import Space
 from gymnasium.vector.sync_vector_env import SyncVectorEnv
 from gymnasium.vector.utils import concatenate
 import gymnasium
-from gymnasium.vector.vector_env import AutoresetMode
 from safety_gymnasium.vector.utils.tile_images import tile_images
 
 
@@ -40,13 +39,12 @@ class SafetySyncVectorEnv(SyncVectorEnv):
         env_fns: Iterator[Callable[[], Env]] | Sequence[Callable[[], Env]],
         copy: bool = True,
         observation_mode: str | gymnasium.Space = "same",
-        autoreset_mode: str | AutoresetMode = AutoresetMode.NEXT_STEP,
     ) -> None:
         """Initializes the vectorized safe environment."""
         super().__init__(env_fns=env_fns,
                          copy=copy,
                          observation_mode=observation_mode,
-                         autoreset_mode=autoreset_mode)
+                         )
         self._costs = np.zeros((self.num_envs,), dtype=np.float64)
 
     def render(self) -> np.ndarray:
